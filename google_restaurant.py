@@ -44,8 +44,8 @@ def google_search(query):
 
 def scrape_google_maps(url):
     # Provide the path to the Chromium/Chrome browser and the compatible WebDriver executable
-    chrome_path = '/path/to/chromium_or_chrome'
-    chromedriver_path = '/path/to/chromedriver'
+    chrome_path = '/usr/bin/google-chrome'
+    chromedriver_path = '/usr/bin/chromedriver'
 
     # Setting up the Chromium/Chrome service and options
     chrome_service = ChromeService(executable_path=chromedriver_path)
@@ -73,8 +73,8 @@ def scrape_google_maps(url):
             EC.element_to_be_clickable((By.CSS_SELECTOR, "button.M77dve[aria-label='More reviews (346)']"))
         )
         print("Button found:", more_reviews_button)
-        
-        
+
+
 
         # Take a screenshot after scrolling the button into view
         browser.save_screenshot('after_scroll.png')
@@ -123,7 +123,7 @@ def scrape_google_maps(url):
                         EC.element_to_be_clickable((By.CLASS_NAME, 'w8nwRe'))
                 ).click()
                 print('is clickable wow sugoi')
-                    
+
             time.sleep(2)
             review_text = element.text.strip()
             restaurant_reviews.append(review_text)
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     restaurant_name = "Chakra Cafe"
     result = google_search(restaurant_name)
     scrape_google_maps(result)
-    
+
 
 
 
