@@ -1,4 +1,5 @@
 import requests
+import re
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
@@ -7,6 +8,14 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 import time
+
+db_params = {
+    'database': 'mydatabase',
+    'user': 'postgres',  # Use the default user
+    'password': 'your_password',
+    'host': 'localhost',
+    'port': '5432',
+}
 
 def save_html_response_to_file(url, file_path):
     try:
@@ -21,26 +30,8 @@ def save_html_response_to_file(url, file_path):
         print(f"Error occurred while saving the HTML content to the file: {e}")
 
 def google_search(query):
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
-
-    url = f"https://www.google.com/search?q={query.replace(' ', '+')}"
-    response = requests.get(url, headers=headers)
-
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.text, 'html.parser')
-        maps_link_element = soup.find('a', class_='eZt8xd', string='Maps')
-
-        if maps_link_element:
-            maps_link = maps_link_element['href']
-            print(f"Maps link found: {maps_link}")
-            return maps_link
-            #save_html_response_to_file(maps_link, 'maps_search_results.html')
-        else:
-            print("Maps link not found.")
-    else:
-        print(f"Failed to perform Google search. Status code: {response.status_code}")
-
+    url = f"https://www.google.com/maps/search/{query.replace(' ', '+')}"
+    return url
 
 def scrape_google_maps(url):
     # Provide the path to the Chromium/Chrome browser and the compatible WebDriver executable
@@ -67,17 +58,9 @@ def scrape_google_maps(url):
         restaurant_rating_and_review_number = browser.find_element(By.CLASS_NAME,'F7nice').text.strip()
         print(restaurant_rating_and_review_number)
         browser.save_screenshot('before_click.png')
-        more_reviews_button = browser.find_element(By.CSS_SELECTOR, "button.M77dve[aria-label='More reviews (346)']")
-        browser.execute_script("arguments[0].scrollIntoView(true);", more_reviews_button)
-        more_reviews_button = WebDriverWait(browser, 10).until(
-            EC.element_to_be_clickable((By.CSS_SELECTOR, "button.M77dve[aria-label='More reviews (346)']"))
-        )
+        more_reviews_button = browser.find_element(By.CSS_SELECTOR, "button.hh2c6[aria-label*='Reviews for']")
+        # browser.execute_script("arguments[0].scrollIntoView(true);", more_reviews_button)
         print("Button found:", more_reviews_button)
-
-
-
-        # Take a screenshot after scrolling the button into view
-        browser.save_screenshot('after_scroll.png')
 
     # Click the button
         more_reviews_button.click()
@@ -88,7 +71,7 @@ def scrape_google_maps(url):
         # WebDriverWait(browser, 10).until(
         #     EC.presence_of_all_elements_located((By.CLASS_NAME, 'jftiEf'))
         # )
-        scrollable_div = browser.execute_script('return document.getElementsByClassName("m6QErb")[5];')
+        scrollable_div = browser.execute_script('return document.getElementsByClassName("m6QErb DxyBCb")[0];')
         SCROLL_PAUSE_TIME = 6
 
 
@@ -97,7 +80,7 @@ def scrape_google_maps(url):
         print(last_height)
         while True:
             # Scroll down to bottom
-            scrollable_div = browser.execute_script('return document.getElementsByClassName("m6QErb")[5];')
+            scrollable_div = browser.execute_script('return document.getElementsByClassName("m6QErb DxyBCb")[0];')
             browser.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight;", scrollable_div)
             browser.save_screenshot("after_height.png")
             # Wait to load page
@@ -125,8 +108,16 @@ def scrape_google_maps(url):
                 print('is clickable wow sugoi')
 
             time.sleep(2)
+            stars_match = re.search(r'(\d+)\s*star', element.get_attribute('innerHTML'), re.IGNORECASE)
+            if stars_match:
+                num_stars = int(stars_match.group(1))
+                print(f"The restaurant has {num_stars} star(s).")
+            else:
+                num_stars = "Not found"
+                print("Star rating not found.")
             review_text = element.text.strip()
-            restaurant_reviews.append(review_text)
+            review_text_with_stars = f"{review_text} (Number of Stars: {num_stars})"
+            restaurant_reviews.append(review_text_with_stars)
             print('review added uwu')
 
         browser.save_screenshot('after_extra.png')
@@ -139,7 +130,7 @@ def scrape_google_maps(url):
         browser.quit()  # Close the browser after scraping
 
 if __name__ == "__main__":
-    restaurant_name = "Chakra Cafe"
+    restaurant_name = "Prairie Hills Cafe"
     result = google_search(restaurant_name)
     scrape_google_maps(result)
 
